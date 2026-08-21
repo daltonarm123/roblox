@@ -88,7 +88,6 @@ upgrade.TextWrapped = true
 upgrade.Text = "Speed: 250 R  •  Capacity: 1.8K R"
 upgrade.TextColor3 = Color3.fromRGB(143, 183, 255)
 upgrade.Font = Enum.Font.Gotham
-action = nil
 upgrade.TextSize = 15
 upgrade.Parent = stats
 
@@ -186,7 +185,6 @@ end)
 
 toastEvent.OnClientEvent:Connect(showToast)
 
--- Keep the HUD readable on narrow/mobile screens.
 local camera = workspace.CurrentCamera
 local function resize()
     local viewport = camera and camera.ViewportSize or Vector2.new(1920, 1080)
