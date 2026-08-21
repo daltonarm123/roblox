@@ -9,7 +9,11 @@
     },
     "ServerScriptService": {
       "Server": {
-        "$path": "src/server"
+        "$className": "Script",
+        "$path": "src/server/Main.server.lua",
+        "Services": {
+          "$path": "src/server/Services"
+        }
       }
     },
     "StarterPlayer": {
