@@ -33,6 +33,18 @@
         },
         "Monetization": {
           "$path": "src/server/Monetization.server.lua"
+        },
+        "BattlePass": {
+          "$path": "src/server/BattlePass.server.lua"
+        },
+        "Abilities": {
+          "$path": "src/server/Abilities.server.lua"
+        },
+        "ResearchShop": {
+          "$path": "src/server/ResearchShop.server.lua"
+        },
+        "RetentionPolish": {
+          "$path": "src/server/RetentionPolish.server.lua"
         }
       }
     },
