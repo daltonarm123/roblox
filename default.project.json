@@ -15,6 +15,9 @@
           "Services": {
             "$path": "src/server/Services"
           }
+        },
+        "VisualCleanup": {
+          "$path": "src/server/VisualCleanup.server.lua"
         }
       }
     },
