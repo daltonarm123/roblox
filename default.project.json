@@ -21,6 +21,18 @@
         },
         "WorldPolish": {
           "$path": "src/server/WorldPolish.server.lua"
+        },
+        "FloorPolish": {
+          "$path": "src/server/FloorPolish.server.lua"
+        },
+        "DefenseShop": {
+          "$path": "src/server/DefenseShop.server.lua"
+        },
+        "RareEventPolish": {
+          "$path": "src/server/RareEventPolish.server.lua"
+        },
+        "Monetization": {
+          "$path": "src/server/Monetization.server.lua"
         }
       }
     },
