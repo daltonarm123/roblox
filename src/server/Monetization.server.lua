@@ -70,8 +70,8 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gameP
     end
 end)
 
--- Developer products can be purchased repeatedly. Product IDs remain zero until
--- you create them in Creator Dashboard, so this cannot charge anybody yet.
+-- Repeat purchases are granted only from ProcessReceipt. IDs remain zero until
+-- you publish and create each product, so Studio testing cannot charge anyone.
 MarketplaceService.ProcessReceipt = function(receiptInfo)
     local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
     if not player then
@@ -93,6 +93,24 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
     elseif products.InstantShieldRecharge > 0 and productId == products.InstantShieldRecharge then
         DataService.ResetShieldCooldown(player)
         toast(player, "Emergency Shield instantly recharged!")
+    elseif products.SeasonPremium > 0 and productId == products.SeasonPremium then
+        if not DataService.HasSeasonPremium(player) then
+            DataService.UnlockSeasonPremium(player)
+            toast(player, "PREMIUM SEASON TRACK unlocked! Earned premium tier rewards will be granted automatically.")
+        else
+            -- A product prompt should be hidden once owned, but still acknowledge a
+            -- duplicate receipt safely instead of withholding a completed purchase.
+            toast(player, "Premium season track is already active for this season.")
+        end
+    elseif products.StaticBurstCharge > 0 and productId == products.StaticBurstCharge then
+        DataService.AddAbilityCharge(player, "StaticBurst", 1)
+        toast(player, "+1 STATIC BURST charge added to your Lab Shop.")
+    elseif products.JumpScareCharge > 0 and productId == products.JumpScareCharge then
+        DataService.AddAbilityCharge(player, "JumpScare", 1)
+        toast(player, "+1 BREACH SCARE charge added to your Lab Shop.")
+    elseif products.CloakCharge > 0 and productId == products.CloakCharge then
+        DataService.AddAbilityCharge(player, "Cloak", 1)
+        toast(player, "+1 PHASE CLOAK charge added to your Lab Shop.")
     else
         warn("ContainmentHeist received an unknown developer product receipt:", productId)
         return Enum.ProductPurchaseDecision.NotProcessedYet
