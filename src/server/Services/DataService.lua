@@ -1,12 +1,31 @@
 local DataStoreService = game:GetService("DataStoreService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 
 local DataService = {}
 DataService.__index = DataService
 
-local store = DataStoreService:GetDataStore(Config.DataStoreName)
+-- Unpublished Studio places cannot access DataStoreService. Keep the game fully
+-- playable with temporary in-memory profiles until the experience is published.
+local store = nil
+local dataStoreAvailable = false
+
+if game.GameId ~= 0 then
+    local ok, result = pcall(function()
+        return DataStoreService:GetDataStore(Config.DataStoreName)
+    end)
+    if ok then
+        store = result
+        dataStoreAvailable = true
+    else
+        warn("ContainmentHeist could not initialize DataStore; using temporary session data:", result)
+    end
+elseif RunService:IsStudio() then
+    print("ContainmentHeist: unpublished Studio test detected; using temporary session data.")
+end
+
 local profiles = {}
 
 local DEFAULT = {
@@ -64,11 +83,14 @@ end
 
 function DataService.Load(player)
     local data
-    local ok, err = pcall(function()
-        data = store:GetAsync(tostring(player.UserId))
-    end)
-    if not ok then
-        warn("ContainmentHeist DataStore load failed for", player.UserId, err)
+
+    if dataStoreAvailable and store then
+        local ok, err = pcall(function()
+            data = store:GetAsync(tostring(player.UserId))
+        end)
+        if not ok then
+            warn("ContainmentHeist DataStore load failed for", player.UserId, err)
+        end
     end
 
     local profile = reconcile(data)
@@ -164,6 +186,12 @@ function DataService.Save(player)
     local profile = profiles[player.UserId]
     if not profile then return true end
     profile.LastSeen = os.time()
+
+    -- In an unpublished Studio place, data intentionally lasts only for this
+    -- play session. Once published, this path automatically uses DataStore.
+    if not dataStoreAvailable or not store then
+        return true
+    end
 
     local payload = {
         Research = profile.Research,
