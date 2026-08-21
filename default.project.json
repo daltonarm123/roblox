@@ -18,6 +18,9 @@
         },
         "VisualCleanup": {
           "$path": "src/server/VisualCleanup.server.lua"
+        },
+        "WorldPolish": {
+          "$path": "src/server/WorldPolish.server.lua"
         }
       }
     },
