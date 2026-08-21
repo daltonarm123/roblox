@@ -32,7 +32,7 @@ local function makePart(name, size, cframe, color, material, transparency)
     return p
 end
 
--- Six broad walkways connect each lab to Central Containment.
+-- Six broad walkways connect each lab edge cleanly to Central Containment.
 for _, lab in ipairs(world:GetChildren()) do
     if lab:IsA("Model") and lab.Name:match("^Lab_%d+$") then
         local floor = lab:FindFirstChild("Floor")
@@ -43,8 +43,10 @@ for _, lab in ipairs(world:GetChildren()) do
             local start = Vector3.new(floor.Position.X, 0.18, floor.Position.Z)
             local destination = Vector3.new(0, 0.18, 0)
             local delta = destination - start
-            local length = math.max(1, delta.Magnitude - 45)
-            local midpoint = start + delta.Unit * (length / 2 + 17)
+            local innerLabOffset = 16
+            local centralRadius = 43
+            local length = math.max(1, delta.Magnitude - innerLabOffset - centralRadius)
+            local midpoint = start + delta.Unit * (innerLabOffset + length / 2)
             local path = makePart(
                 lab.Name .. "_MainWalkway",
                 Vector3.new(15, 0.35, length),
