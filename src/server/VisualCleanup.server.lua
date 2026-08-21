@@ -16,16 +16,22 @@ local function configureBillboard(gui)
     end
 
     configuredLabels[gui] = true
-
-    gui.MaxDistance = 58
     gui.AlwaysOnTop = false
 
-    if gui.Name == "SpecimenLabel" then
+    if gui.Name == "TerminalLabel" then
+        gui.MaxDistance = 28
+        gui.Size = UDim2.fromOffset(128, 42)
+        gui.StudsOffset = Vector3.new(0, 2.2, 0)
+    elseif gui.Name == "SpecimenLabel" then
+        gui.MaxDistance = 58
         gui.Size = UDim2.fromOffset(145, 44)
         gui.StudsOffset = Vector3.new(0, 2.8, 0)
-    elseif gui.Size.X.Offset >= 180 or gui.Size.Y.Offset >= 55 then
-        gui.Size = UDim2.fromOffset(140, 42)
-        gui.StudsOffset = Vector3.new(0, 2.8, 0)
+    else
+        gui.MaxDistance = 58
+        if gui.Size.X.Offset >= 180 or gui.Size.Y.Offset >= 55 then
+            gui.Size = UDim2.fromOffset(140, 42)
+            gui.StudsOffset = Vector3.new(0, 2.8, 0)
+        end
     end
 
     local label = gui:FindFirstChildOfClass("TextLabel")
