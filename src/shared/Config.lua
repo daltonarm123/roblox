@@ -12,6 +12,13 @@ Config.SpecimenRespawnSeconds = 10
 Config.RareEventSeconds = 5 * 60
 Config.RaidGraceSeconds = 45
 
+-- Lab defense systems.
+Config.EmergencyShieldDuration = 60
+Config.EmergencyShieldBaseCooldown = 5 * 60
+Config.EmergencyShieldCooldownReductionPerLevel = 20
+Config.LockdownMaxSeconds = 3 * 60
+Config.LockdownCooldownSeconds = 60 * 60
+
 Config.SpeedUpgrade = {
     BaseCost = 250,
     Growth = 1.75,
@@ -24,6 +31,33 @@ Config.CapacityUpgrade = {
     BaseCost = 1800,
     Growth = 3.25,
     MaxLevel = Config.MaxCapacity - Config.StartingCapacity,
+}
+
+Config.IncomeUpgrade = {
+    BaseCost = 2500,
+    Growth = 1.85,
+    MaxLevel = 10,
+    BonusPerLevel = 0.10,
+}
+
+Config.ShieldTechUpgrade = {
+    BaseCost = 4000,
+    Growth = 2,
+    MaxLevel = 5,
+}
+
+-- Replace these zeroes after the experience is published and the products are
+-- created in Creator Dashboard. Zero IDs are intentionally safe/no-purchase.
+Config.Monetization = {
+    GamePasses = {
+        DoubleResearch = 0,
+        VIP = 0,
+    },
+    DeveloperProducts = {
+        Research5000 = 0,
+        Research25000 = 0,
+        InstantShieldRecharge = 0,
+    },
 }
 
 Config.Specimens = {
@@ -50,12 +84,29 @@ function Config.GetCapacityCost(level)
     return math.floor(Config.CapacityUpgrade.BaseCost * (Config.CapacityUpgrade.Growth ^ level))
 end
 
+function Config.GetIncomeUpgradeCost(level)
+    return math.floor(Config.IncomeUpgrade.BaseCost * (Config.IncomeUpgrade.Growth ^ level))
+end
+
+function Config.GetShieldTechCost(level)
+    return math.floor(Config.ShieldTechUpgrade.BaseCost * (Config.ShieldTechUpgrade.Growth ^ level))
+end
+
 function Config.GetCapacity(level)
     return math.clamp(Config.StartingCapacity + level, Config.StartingCapacity, Config.MaxCapacity)
 end
 
 function Config.GetWalkSpeed(level)
     return Config.SpeedUpgrade.WalkSpeedBase + (Config.SpeedUpgrade.WalkSpeedPerLevel * level)
+end
+
+function Config.GetIncomeMultiplier(level)
+    return 1 + (math.clamp(level or 0, 0, Config.IncomeUpgrade.MaxLevel) * Config.IncomeUpgrade.BonusPerLevel)
+end
+
+function Config.GetEmergencyShieldCooldown(level)
+    local reduction = math.clamp(level or 0, 0, Config.ShieldTechUpgrade.MaxLevel) * Config.EmergencyShieldCooldownReductionPerLevel
+    return math.max(60, Config.EmergencyShieldBaseCooldown - reduction)
 end
 
 function Config.GetSpecimenById(id)
