@@ -1,3 +1,5 @@
+local RunService = game:GetService("RunService")
+
 local Config = {}
 
 Config.GameName = "CONTAINMENT HEIST"
@@ -9,7 +11,7 @@ Config.StartingCapacity = 3
 Config.MaxCapacity = 6
 Config.CentralSpawnCount = 6
 Config.SpecimenRespawnSeconds = 10
-Config.RareEventSeconds = 5 * 60
+Config.RareEventSeconds = RunService:IsStudio() and 60 or (5 * 60)
 Config.RaidGraceSeconds = 45
 
 -- Lab defense systems.
