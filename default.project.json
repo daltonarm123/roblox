@@ -45,6 +45,9 @@
         },
         "RetentionPolish": {
           "$path": "src/server/RetentionPolish.server.lua"
+        },
+        "BugReports": {
+          "$path": "src/server/BugReports.server.lua"
         }
       }
     },
