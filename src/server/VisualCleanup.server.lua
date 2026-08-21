@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
 local world = Workspace:WaitForChild("ContainmentHeistWorld")
@@ -34,6 +35,64 @@ local function configureBillboard(gui)
     label:GetPropertyChangedSignal("Text"):Connect(updateVisibility)
 end
 
+local function addOwnerFace(sign, face, text)
+    local gui = Instance.new("SurfaceGui")
+    gui.Name = "OwnerDisplay"
+    gui.Face = face
+    gui.AlwaysOnTop = true
+    gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    gui.PixelsPerStud = 32
+    gui.Parent = sign
+
+    local label = Instance.new("TextLabel")
+    label.Name = "OwnerText"
+    label.Size = UDim2.fromScale(1, 1)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextStrokeTransparency = 0.3
+    label.TextScaled = true
+    label.TextWrapped = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = gui
+end
+
+local function updateLabSign(lab)
+    if not lab:IsA("Model") or not string.match(lab.Name, "^Lab_%d+$") then
+        return
+    end
+
+    local sign = lab:FindFirstChild("OwnerSign")
+    if not sign or not sign:IsA("BasePart") then
+        return
+    end
+
+    local ownerUserId = lab:GetAttribute("OwnerUserId") or 0
+    local text = "UNCLAIMED LAB"
+
+    if ownerUserId ~= 0 then
+        local owner = Players:GetPlayerByUserId(ownerUserId)
+        if owner then
+            text = string.upper(owner.DisplayName) .. "'S LAB"
+        else
+            text = "CLAIMED LAB"
+        end
+        sign.Color = Color3.fromRGB(35, 120, 85)
+    else
+        sign.Color = Color3.fromRGB(15, 20, 26)
+    end
+
+    for _, child in ipairs(sign:GetChildren()) do
+        if child:IsA("SurfaceGui") then
+            child:Destroy()
+        end
+    end
+
+    -- Mirror the owner text on both sides so it is readable from either approach.
+    addOwnerFace(sign, Enum.NormalId.Front, text)
+    addOwnerFace(sign, Enum.NormalId.Back, text)
+end
+
 for _, descendant in ipairs(world:GetDescendants()) do
     if descendant:IsA("BillboardGui") then
         configureBillboard(descendant)
@@ -45,3 +104,12 @@ world.DescendantAdded:Connect(function(descendant)
         task.defer(configureBillboard, descendant)
     end
 end)
+
+for _, child in ipairs(world:GetChildren()) do
+    if child:IsA("Model") and string.match(child.Name, "^Lab_%d+$") then
+        updateLabSign(child)
+        child:GetAttributeChangedSignal("OwnerUserId"):Connect(function()
+            updateLabSign(child)
+        end)
+    end
+end
