@@ -1,18 +1,18 @@
 return {
-    MasterVolume = 0.65,
+    MasterVolume = 0.72,
 
-    -- Add Creator Store / uploaded audio asset IDs here.
-    -- Zero keeps the cue safely disabled until an approved sound is selected.
+    -- Roblox-owned Creator Store effects. Playback speed gives each cue its own feel
+    -- while keeping the first audio pass lightweight and safe to use.
     Cues = {
-        UIClick = { Id = 0, Volume = 0.35 },
-        Pickup = { Id = 0, Volume = 0.7 },
-        Deposit = { Id = 0, Volume = 0.75 },
-        RareBreach = { Id = 0, Volume = 0.9 },
-        Security = { Id = 0, Volume = 0.8 },
-        Shield = { Id = 0, Volume = 0.75 },
-        Lockdown = { Id = 0, Volume = 0.8 },
-        Upgrade = { Id = 0, Volume = 0.65 },
-        Ability = { Id = 0, Volume = 0.7 },
-        Error = { Id = 0, Volume = 0.5 },
+        UIClick = { Id = 12221990, Volume = 0.22, PlaybackSpeed = 1.35 }, -- electronic ping
+        Pickup = { Id = 12222140, Volume = 0.55, PlaybackSpeed = 1.18 }, -- snap
+        Deposit = { Id = 12221990, Volume = 0.62, PlaybackSpeed = 0.88 },
+        RareBreach = { Id = 12221944, Volume = 0.95, PlaybackSpeed = 0.68 }, -- bass hit
+        Security = { Id = 12221944, Volume = 0.78, PlaybackSpeed = 1.08 },
+        Shield = { Id = 12221990, Volume = 0.58, PlaybackSpeed = 0.74 },
+        Lockdown = { Id = 12221944, Volume = 0.82, PlaybackSpeed = 0.82 },
+        Upgrade = { Id = 12221990, Volume = 0.58, PlaybackSpeed = 1.55 },
+        Ability = { Id = 12222140, Volume = 0.64, PlaybackSpeed = 0.86 },
+        Error = { Id = 12221944, Volume = 0.48, PlaybackSpeed = 1.42 },
     },
 }
