@@ -9,9 +9,12 @@
     },
     "ServerScriptService": {
       "Server": {
-        "$path": "src/server/Main.server.lua",
-        "Services": {
-          "$path": "src/server/Services"
+        "$className": "Folder",
+        "Main": {
+          "$path": "src/server/Main.server.lua",
+          "Services": {
+            "$path": "src/server/Services"
+          }
         }
       }
     },
