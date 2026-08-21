@@ -94,10 +94,6 @@ local function configured(id)
     return type(id) == "number" and id > 0
 end
 
-local function priceSuffix(configuredProduct, fallback)
-    return configuredProduct and "Loading price..." or (tostring(fallback) .. " R$ planned")
-end
-
 local function makeProductCard(def)
     local isConfigured = configured(def.Id)
     local button = Instance.new("TextButton")
@@ -116,11 +112,17 @@ local function makeProductCard(def)
     padding.PaddingRight = UDim.new(0, 10)
 
     local shownPrice = def.Price
+    local livePriceLoaded = false
     local function redraw()
-        button.Text = string.format("%s  •  %s\n%s", def.Name, priceSuffix(isConfigured, shownPrice), def.Description)
-        if isConfigured and type(shownPrice) == "number" then
-            button.Text = string.format("%s  •  %d R$\n%s", def.Name, shownPrice, def.Description)
+        local suffix
+        if isConfigured and livePriceLoaded then
+            suffix = tostring(shownPrice) .. " R$"
+        elseif isConfigured then
+            suffix = "loading live price..."
+        else
+            suffix = tostring(def.Price) .. " R$ planned"
         end
+        button.Text = string.format("%s  •  %s\n%s", def.Name, suffix, def.Description)
     end
     redraw()
 
@@ -131,6 +133,7 @@ local function makeProductCard(def)
             end)
             if ok and info and info.PriceInRobux then
                 shownPrice = info.PriceInRobux
+                livePriceLoaded = true
                 redraw()
             end
         end)
@@ -149,13 +152,14 @@ local function makeProductCard(def)
     end)
 end
 
+-- Premium season access lives only in the Season panel so an already-premium
+-- player cannot accidentally prompt a duplicate repeatable purchase.
 local definitions = {
     {Name = "2× RESEARCH", Description = "Permanent passive Research multiplier.", Id = passes.DoubleResearch, InfoType = Enum.InfoType.GamePass, Price = suggested.DoubleResearch},
     {Name = "VIP", Description = "Permanent +10% movement speed and future VIP perks.", Id = passes.VIP, InfoType = Enum.InfoType.GamePass, Price = suggested.VIP},
     {Name = "+5,000 RESEARCH", Description = "Repeatable Research bundle.", Id = products.Research5000, InfoType = Enum.InfoType.Product, Price = suggested.Research5000},
     {Name = "+25,000 RESEARCH", Description = "Larger repeatable Research bundle.", Id = products.Research25000, InfoType = Enum.InfoType.Product, Price = suggested.Research25000},
     {Name = "INSTANT SHIELD RECHARGE", Description = "Reset your emergency shield cooldown immediately.", Id = products.InstantShieldRecharge, InfoType = Enum.InfoType.Product, Price = suggested.InstantShieldRecharge},
-    {Name = "PREMIUM SEASON TRACK", Description = "Unlock premium rewards for the current season.", Id = products.SeasonPremium, InfoType = Enum.InfoType.Product, Price = suggested.SeasonPremium},
     {Name = "+1 STATIC BURST", Description = "Stores one free Static Burst use in your Lab Shop.", Id = products.StaticBurstCharge, InfoType = Enum.InfoType.Product, Price = suggested.StaticBurstCharge},
     {Name = "+1 BREACH SCARE", Description = "Stores one free Breach Scare use in your Lab Shop.", Id = products.JumpScareCharge, InfoType = Enum.InfoType.Product, Price = suggested.JumpScareCharge},
     {Name = "+1 PHASE CLOAK", Description = "Stores one free Phase Cloak use. Cloak cannot carry loot.", Id = products.CloakCharge, InfoType = Enum.InfoType.Product, Price = suggested.CloakCharge},
