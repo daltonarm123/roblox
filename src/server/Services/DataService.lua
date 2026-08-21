@@ -32,8 +32,12 @@ local DEFAULT = {
     Research = 0,
     SpeedLevel = 0,
     CapacityLevel = 0,
+    IncomeLevel = 0,
+    ShieldLevel = 0,
     Prestige = 0,
     Specimens = {},
+    ShieldReadyAt = 0,
+    LockdownReadyAt = 0,
     LastSeen = 0,
 }
 
@@ -65,6 +69,8 @@ local function reconcile(data)
     end
     result.SpeedLevel = math.clamp(result.SpeedLevel, 0, Config.SpeedUpgrade.MaxLevel)
     result.CapacityLevel = math.clamp(result.CapacityLevel, 0, Config.CapacityUpgrade.MaxLevel)
+    result.IncomeLevel = math.clamp(result.IncomeLevel, 0, Config.IncomeUpgrade.MaxLevel)
+    result.ShieldLevel = math.clamp(result.ShieldLevel, 0, Config.ShieldTechUpgrade.MaxLevel)
     return result
 end
 
@@ -78,7 +84,8 @@ local function specimenIncome(profile)
         end
     end
     local prestigeMultiplier = 1 + (profile.Prestige * 0.15)
-    return math.floor(total * prestigeMultiplier)
+    local shopMultiplier = Config.GetIncomeMultiplier(profile.IncomeLevel)
+    return math.floor(total * prestigeMultiplier * shopMultiplier)
 end
 
 function DataService.Load(player)
@@ -114,7 +121,12 @@ end
 
 function DataService.GetIncome(player)
     local profile = profiles[player.UserId]
-    return profile and specimenIncome(profile) or 0
+    if not profile then return 0 end
+    local income = specimenIncome(profile)
+    if player:GetAttribute("DoubleResearch") then
+        income *= 2
+    end
+    return math.floor(income)
 end
 
 function DataService.AddResearch(player, amount)
@@ -182,6 +194,44 @@ function DataService.BuyCapacity(player)
     return true
 end
 
+function DataService.BuyIncomeBoost(player)
+    local profile = profiles[player.UserId]
+    if not profile or profile.IncomeLevel >= Config.IncomeUpgrade.MaxLevel then
+        return false, "MAX"
+    end
+    local cost = Config.GetIncomeUpgradeCost(profile.IncomeLevel)
+    if not DataService.SpendResearch(player, cost) then
+        return false, "NOT_ENOUGH"
+    end
+    profile.IncomeLevel += 1
+    return true
+end
+
+function DataService.BuyShieldTech(player)
+    local profile = profiles[player.UserId]
+    if not profile or profile.ShieldLevel >= Config.ShieldTechUpgrade.MaxLevel then
+        return false, "MAX"
+    end
+    local cost = Config.GetShieldTechCost(profile.ShieldLevel)
+    if not DataService.SpendResearch(player, cost) then
+        return false, "NOT_ENOUGH"
+    end
+    profile.ShieldLevel += 1
+    return true
+end
+
+function DataService.GetShieldCooldown(player)
+    local profile = profiles[player.UserId]
+    return Config.GetEmergencyShieldCooldown(profile and profile.ShieldLevel or 0)
+end
+
+function DataService.ResetShieldCooldown(player)
+    local profile = profiles[player.UserId]
+    if not profile then return false end
+    profile.ShieldReadyAt = 0
+    return true
+end
+
 function DataService.Save(player)
     local profile = profiles[player.UserId]
     if not profile then return true end
@@ -197,8 +247,12 @@ function DataService.Save(player)
         Research = profile.Research,
         SpeedLevel = profile.SpeedLevel,
         CapacityLevel = profile.CapacityLevel,
+        IncomeLevel = profile.IncomeLevel,
+        ShieldLevel = profile.ShieldLevel,
         Prestige = profile.Prestige,
         Specimens = clone(profile.Specimens),
+        ShieldReadyAt = profile.ShieldReadyAt,
+        LockdownReadyAt = profile.LockdownReadyAt,
         LastSeen = profile.LastSeen,
     }
 
