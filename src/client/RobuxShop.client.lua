@@ -5,6 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local player = Players.LocalPlayer
 local monetization = Config.Monetization
+local passes = monetization.GamePasses
+local products = monetization.DeveloperProducts
+local suggested = monetization.SuggestedPrices
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "RobuxShopUI"
@@ -27,10 +30,10 @@ Instance.new("UICorner", openButton).CornerRadius = UDim.new(0, 10)
 local panel = Instance.new("Frame")
 panel.Name = "Panel"
 panel.AnchorPoint = Vector2.new(1, 0.5)
-panel.Position = UDim2.new(1, -18, 0.52, 0)
-panel.Size = UDim2.fromOffset(330, 390)
+panel.Position = UDim2.new(1, -18, 0.5, 0)
+panel.Size = UDim2.fromOffset(390, 540)
 panel.BackgroundColor3 = Color3.fromRGB(8, 12, 18)
-panel.BackgroundTransparency = 0.04
+panel.BackgroundTransparency = 0.03
 panel.Visible = false
 panel.Parent = gui
 Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 14)
@@ -62,75 +65,105 @@ close.Font = Enum.Font.GothamBold
 close.Parent = panel
 Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
 
-local holder = Instance.new("Frame")
-holder.Position = UDim2.fromOffset(14, 62)
+local status = Instance.new("TextLabel")
+status.Position = UDim2.fromOffset(14, 52)
+status.Size = UDim2.new(1, -28, 0, 42)
+status.BackgroundTransparency = 1
+status.TextWrapped = true
+status.TextColor3 = Color3.fromRGB(170, 185, 205)
+status.TextSize = 12
+status.Font = Enum.Font.Gotham
+status.Text = "Planned prices are shown during Studio testing. Live prices load from Roblox after product IDs are added."
+status.Parent = panel
+
+local holder = Instance.new("ScrollingFrame")
+holder.Position = UDim2.fromOffset(14, 98)
 holder.Size = UDim2.new(1, -28, 1, -112)
 holder.BackgroundTransparency = 1
+holder.BorderSizePixel = 0
+holder.ScrollBarThickness = 5
+holder.ScrollBarImageColor3 = Color3.fromRGB(70, 150, 110)
+holder.AutomaticCanvasSize = Enum.AutomaticSize.Y
+holder.CanvasSize = UDim2.new()
 holder.Parent = panel
 local layout = Instance.new("UIListLayout", holder)
 layout.Padding = UDim.new(0, 8)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 
-local status = Instance.new("TextLabel")
-status.AnchorPoint = Vector2.new(0, 1)
-status.Position = UDim2.new(0, 14, 1, -10)
-status.Size = UDim2.new(1, -28, 0, 42)
-status.BackgroundTransparency = 1
-status.TextWrapped = true
-status.TextScaled = true
-status.TextColor3 = Color3.fromRGB(170, 185, 205)
-status.Font = Enum.Font.Gotham
-status.Text = "Products become purchasable after we publish and add Creator Dashboard IDs."
-status.Parent = panel
-
 local function configured(id)
     return type(id) == "number" and id > 0
 end
 
-local function makeButton(text, subtitle, callback, isConfigured)
+local function priceSuffix(configuredProduct, fallback)
+    return configuredProduct and "Loading price..." or (tostring(fallback) .. " R$ planned")
+end
+
+local function makeProductCard(def)
+    local isConfigured = configured(def.Id)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 54)
+    button.Size = UDim2.new(1, -4, 0, 64)
     button.BackgroundColor3 = isConfigured and Color3.fromRGB(24, 72, 54) or Color3.fromRGB(38, 43, 52)
     button.AutoButtonColor = isConfigured
-    button.Text = text .. "\n" .. subtitle
-    button.TextColor3 = isConfigured and Color3.new(1, 1, 1) or Color3.fromRGB(145, 150, 160)
-    button.TextSize = 14
+    button.TextColor3 = isConfigured and Color3.new(1, 1, 1) or Color3.fromRGB(180, 185, 195)
     button.TextWrapped = true
+    button.TextXAlignment = Enum.TextXAlignment.Left
+    button.TextSize = 13
     button.Font = Enum.Font.GothamBold
     button.Parent = holder
     Instance.new("UICorner", button).CornerRadius = UDim.new(0, 9)
+    local padding = Instance.new("UIPadding", button)
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.PaddingRight = UDim.new(0, 10)
+
+    local shownPrice = def.Price
+    local function redraw()
+        button.Text = string.format("%s  •  %s\n%s", def.Name, priceSuffix(isConfigured, shownPrice), def.Description)
+        if isConfigured and type(shownPrice) == "number" then
+            button.Text = string.format("%s  •  %d R$\n%s", def.Name, shownPrice, def.Description)
+        end
+    end
+    redraw()
+
+    if isConfigured then
+        task.spawn(function()
+            local ok, info = pcall(function()
+                return MarketplaceService:GetProductInfoAsync(def.Id, def.InfoType)
+            end)
+            if ok and info and info.PriceInRobux then
+                shownPrice = info.PriceInRobux
+                redraw()
+            end
+        end)
+    end
 
     button.Activated:Connect(function()
         if not isConfigured then
-            status.Text = "Not for sale yet — we still need to publish the experience and create this product."
+            status.Text = string.format("%s is planned at %d R$. Publish the experience and create the matching product to enable it.", def.Name, def.Price)
             return
         end
-        callback()
+        if def.InfoType == Enum.InfoType.GamePass then
+            MarketplaceService:PromptGamePassPurchase(player, def.Id)
+        else
+            MarketplaceService:PromptProductPurchase(player, def.Id)
+        end
     end)
 end
 
-local passes = monetization.GamePasses
-local products = monetization.DeveloperProducts
+local definitions = {
+    {Name = "2× RESEARCH", Description = "Permanent passive Research multiplier.", Id = passes.DoubleResearch, InfoType = Enum.InfoType.GamePass, Price = suggested.DoubleResearch},
+    {Name = "VIP", Description = "Permanent +10% movement speed and future VIP perks.", Id = passes.VIP, InfoType = Enum.InfoType.GamePass, Price = suggested.VIP},
+    {Name = "+5,000 RESEARCH", Description = "Repeatable Research bundle.", Id = products.Research5000, InfoType = Enum.InfoType.Product, Price = suggested.Research5000},
+    {Name = "+25,000 RESEARCH", Description = "Larger repeatable Research bundle.", Id = products.Research25000, InfoType = Enum.InfoType.Product, Price = suggested.Research25000},
+    {Name = "INSTANT SHIELD RECHARGE", Description = "Reset your emergency shield cooldown immediately.", Id = products.InstantShieldRecharge, InfoType = Enum.InfoType.Product, Price = suggested.InstantShieldRecharge},
+    {Name = "PREMIUM SEASON TRACK", Description = "Unlock premium rewards for the current season.", Id = products.SeasonPremium, InfoType = Enum.InfoType.Product, Price = suggested.SeasonPremium},
+    {Name = "+1 STATIC BURST", Description = "Stores one free Static Burst use in your Lab Shop.", Id = products.StaticBurstCharge, InfoType = Enum.InfoType.Product, Price = suggested.StaticBurstCharge},
+    {Name = "+1 BREACH SCARE", Description = "Stores one free Breach Scare use in your Lab Shop.", Id = products.JumpScareCharge, InfoType = Enum.InfoType.Product, Price = suggested.JumpScareCharge},
+    {Name = "+1 PHASE CLOAK", Description = "Stores one free Phase Cloak use. Cloak cannot carry loot.", Id = products.CloakCharge, InfoType = Enum.InfoType.Product, Price = suggested.CloakCharge},
+}
 
-makeButton("2× RESEARCH", "Permanent game pass", function()
-    MarketplaceService:PromptGamePassPurchase(player, passes.DoubleResearch)
-end, configured(passes.DoubleResearch))
-
-makeButton("VIP", "Permanent +10% movement speed", function()
-    MarketplaceService:PromptGamePassPurchase(player, passes.VIP)
-end, configured(passes.VIP))
-
-makeButton("+5,000 RESEARCH", "Repeatable developer product", function()
-    MarketplaceService:PromptProductPurchase(player, products.Research5000)
-end, configured(products.Research5000))
-
-makeButton("+25,000 RESEARCH", "Repeatable developer product", function()
-    MarketplaceService:PromptProductPurchase(player, products.Research25000)
-end, configured(products.Research25000))
-
-makeButton("INSTANT SHIELD RECHARGE", "Reset emergency shield cooldown", function()
-    MarketplaceService:PromptProductPurchase(player, products.InstantShieldRecharge)
-end, configured(products.InstantShieldRecharge))
+for _, def in ipairs(definitions) do
+    makeProductCard(def)
+end
 
 openButton.Activated:Connect(function()
     panel.Visible = true
