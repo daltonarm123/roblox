@@ -48,6 +48,50 @@ Config.ShieldTechUpgrade = {
     MaxLevel = 5,
 }
 
+-- Fun abilities are intentionally short-lived and have meaningful cooldowns.
+-- Cloak is disabled while carrying loot so paid/earned uses do not become pay-to-win.
+Config.Abilities = {
+    StaticBurst = {
+        Name = "STATIC BURST",
+        Description = "Scrambles every rival's screen for 2 seconds.",
+        ResearchCost = 1800,
+        Cooldown = 45,
+        Duration = 2.0,
+        RobuxPrice = 15,
+    },
+    JumpScare = {
+        Name = "BREACH SCARE",
+        Description = "Triggers a quick anomaly scare on every rival.",
+        ResearchCost = 3200,
+        Cooldown = 75,
+        Duration = 1.4,
+        RobuxPrice = 25,
+    },
+    Cloak = {
+        Name = "PHASE CLOAK",
+        Description = "Become hard to see for 15 seconds. Cancels if you carry loot.",
+        ResearchCost = 5000,
+        Cooldown = 120,
+        Duration = 15,
+        RobuxPrice = 29,
+    },
+}
+
+-- First season. We can change the ID to reset progression for the next season.
+Config.Season = {
+    Id = "S1",
+    Name = "CONTAINMENT PROTOCOL",
+    MaxTier = 20,
+    XPPerTier = 100,
+    SuggestedPremiumPrice = 299,
+    Missions = {
+        { Id = "PlaySeconds", Name = "Stay in containment for 10 minutes", Target = 10 * 60, XP = 60 },
+        { Id = "ResearchEarned", Name = "Earn 2,500 Research", Target = 2500, XP = 70 },
+        { Id = "Contained", Name = "Contain 3 anomalies", Target = 3, XP = 80 },
+        { Id = "Shields", Name = "Activate your emergency shield", Target = 1, XP = 40 },
+    },
+}
+
 -- Replace these zeroes after the experience is published and the products are
 -- created in Creator Dashboard. Zero IDs are intentionally safe/no-purchase.
 Config.Monetization = {
@@ -59,6 +103,21 @@ Config.Monetization = {
         Research5000 = 0,
         Research25000 = 0,
         InstantShieldRecharge = 0,
+        SeasonPremium = 0,
+        StaticBurstCharge = 0,
+        JumpScareCharge = 0,
+        CloakCharge = 0,
+    },
+    SuggestedPrices = {
+        DoubleResearch = 399,
+        VIP = 199,
+        Research5000 = 29,
+        Research25000 = 99,
+        InstantShieldRecharge = 19,
+        SeasonPremium = 299,
+        StaticBurstCharge = 15,
+        JumpScareCharge = 25,
+        CloakCharge = 29,
     },
 }
 
@@ -109,6 +168,33 @@ end
 function Config.GetEmergencyShieldCooldown(level)
     local reduction = math.clamp(level or 0, 0, Config.ShieldTechUpgrade.MaxLevel) * Config.EmergencyShieldCooldownReductionPerLevel
     return math.max(60, Config.EmergencyShieldBaseCooldown - reduction)
+end
+
+function Config.GetSeasonReward(tier, premium)
+    tier = math.clamp(math.floor(tier or 1), 1, Config.Season.MaxTier)
+    local reward = {
+        Research = premium and (900 + tier * 250) or (400 + tier * 150),
+        Ability = nil,
+        AbilityCount = 0,
+    }
+
+    if premium then
+        if tier % 4 == 0 then
+            reward.Ability = "Cloak"
+            reward.AbilityCount = 1
+        elseif tier % 3 == 0 then
+            reward.Ability = "JumpScare"
+            reward.AbilityCount = 1
+        elseif tier % 2 == 0 then
+            reward.Ability = "StaticBurst"
+            reward.AbilityCount = 1
+        end
+    elseif tier % 5 == 0 then
+        reward.Ability = "StaticBurst"
+        reward.AbilityCount = 1
+    end
+
+    return reward
 end
 
 function Config.GetSpecimenById(id)
