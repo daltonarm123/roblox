@@ -49,7 +49,7 @@ local function classifyToast(message)
         return "Shield"
     elseif string.find(text, "LOCKDOWN", 1, true) then
         return "Lockdown"
-    elseif string.find(text, "UPGRADED", 1, true) or string.find(text, "UNLOCKED", 1, true) or string.find(text, "PURCHASE COMPLETE", 1, true) or string.find(text, "DAILY COMPLETE", 1, true) then
+    elseif string.find(text, "UPGRADE PURCHASED", 1, true) or string.find(text, "UPGRADED", 1, true) or string.find(text, "UNLOCKED", 1, true) or string.find(text, "PURCHASE COMPLETE", 1, true) or string.find(text, "DAILY COMPLETE", 1, true) then
         return "Upgrade"
     elseif string.find(text, "CLOAK", 1, true) or string.find(text, "STATIC BURST", 1, true) or string.find(text, "BREACH SCARE", 1, true) then
         return "Ability"
