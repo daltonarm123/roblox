@@ -9,6 +9,12 @@ local function configureBillboard(gui)
     if configuredLabels[gui] or not gui:IsA("BillboardGui") then
         return
     end
+
+    -- Rare breach markers intentionally render from far away; do not shrink them.
+    if gui.Name == "RareBreachLabel" then
+        return
+    end
+
     configuredLabels[gui] = true
 
     gui.MaxDistance = 58
