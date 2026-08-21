@@ -39,6 +39,25 @@ local DEFAULT = {
     ShieldReadyAt = 0,
     LockdownReadyAt = 0,
     LastSeen = 0,
+
+    SeasonId = Config.Season.Id,
+    SeasonXP = 0,
+    SeasonFreeClaimed = 0,
+    SeasonPremiumClaimed = 0,
+    PremiumSeasonId = "",
+    DailyMissionDay = 0,
+    DailyProgress = {
+        PlaySeconds = 0,
+        ResearchEarned = 0,
+        Contained = 0,
+        Shields = 0,
+    },
+    DailyCompleted = {},
+    AbilityCharges = {
+        StaticBurst = 0,
+        JumpScare = 0,
+        Cloak = 0,
+    },
 }
 
 local function clone(value)
@@ -52,25 +71,70 @@ local function clone(value)
     return out
 end
 
+local function currentDay()
+    return math.floor(os.time() / 86400)
+end
+
+local function resetDaily(profile)
+    profile.DailyMissionDay = currentDay()
+    profile.DailyProgress = {
+        PlaySeconds = 0,
+        ResearchEarned = 0,
+        Contained = 0,
+        Shields = 0,
+    }
+    profile.DailyCompleted = {}
+end
+
+local function ensureSeason(profile)
+    if profile.SeasonId ~= Config.Season.Id then
+        profile.SeasonId = Config.Season.Id
+        profile.SeasonXP = 0
+        profile.SeasonFreeClaimed = 0
+        profile.SeasonPremiumClaimed = 0
+        resetDaily(profile)
+    end
+
+    if profile.DailyMissionDay ~= currentDay() then
+        resetDaily(profile)
+    end
+end
+
 local function reconcile(data)
     local result = clone(DEFAULT)
-    if type(data) ~= "table" then
-        return result
-    end
-    for key, defaultValue in pairs(DEFAULT) do
-        local incoming = data[key]
-        if type(defaultValue) == "table" then
-            if type(incoming) == "table" then
-                result[key] = clone(incoming)
+    if type(data) == "table" then
+        for key, defaultValue in pairs(DEFAULT) do
+            local incoming = data[key]
+            if type(defaultValue) == "table" then
+                if type(incoming) == "table" then
+                    result[key] = clone(incoming)
+                end
+            elseif type(incoming) == type(defaultValue) then
+                result[key] = incoming
             end
-        elseif type(incoming) == type(defaultValue) then
-            result[key] = incoming
         end
     end
+
     result.SpeedLevel = math.clamp(result.SpeedLevel, 0, Config.SpeedUpgrade.MaxLevel)
     result.CapacityLevel = math.clamp(result.CapacityLevel, 0, Config.CapacityUpgrade.MaxLevel)
     result.IncomeLevel = math.clamp(result.IncomeLevel, 0, Config.IncomeUpgrade.MaxLevel)
     result.ShieldLevel = math.clamp(result.ShieldLevel, 0, Config.ShieldTechUpgrade.MaxLevel)
+    result.SeasonXP = math.max(0, math.floor(result.SeasonXP or 0))
+    result.SeasonFreeClaimed = math.max(0, math.floor(result.SeasonFreeClaimed or 0))
+    result.SeasonPremiumClaimed = math.max(0, math.floor(result.SeasonPremiumClaimed or 0))
+
+    result.AbilityCharges = result.AbilityCharges or {}
+    for abilityId in pairs(Config.Abilities) do
+        result.AbilityCharges[abilityId] = math.max(0, math.floor(result.AbilityCharges[abilityId] or 0))
+    end
+
+    result.DailyProgress = result.DailyProgress or {}
+    for _, mission in ipairs(Config.Season.Missions) do
+        result.DailyProgress[mission.Id] = math.max(0, math.floor(result.DailyProgress[mission.Id] or 0))
+    end
+    result.DailyCompleted = result.DailyCompleted or {}
+
+    ensureSeason(result)
     return result
 end
 
@@ -117,6 +181,13 @@ end
 
 function DataService.Get(player)
     return profiles[player.UserId]
+end
+
+function DataService.EnsureDaily(player)
+    local profile = profiles[player.UserId]
+    if not profile then return nil end
+    ensureSeason(profile)
+    return profile
 end
 
 function DataService.GetIncome(player)
@@ -232,10 +303,66 @@ function DataService.ResetShieldCooldown(player)
     return true
 end
 
+function DataService.AddSeasonXP(player, amount)
+    local profile = DataService.EnsureDaily(player)
+    if not profile then return false end
+    profile.SeasonXP = math.max(0, math.floor(profile.SeasonXP + amount))
+    return true
+end
+
+function DataService.RecordMissionProgress(player, missionId, amount)
+    local profile = DataService.EnsureDaily(player)
+    if not profile or profile.DailyCompleted[missionId] then return false end
+    profile.DailyProgress[missionId] = math.max(0, math.floor((profile.DailyProgress[missionId] or 0) + amount))
+    return true
+end
+
+function DataService.SetMissionCompleted(player, missionId)
+    local profile = DataService.EnsureDaily(player)
+    if not profile then return false end
+    profile.DailyCompleted[missionId] = true
+    return true
+end
+
+function DataService.HasSeasonPremium(player)
+    local profile = profiles[player.UserId]
+    return profile ~= nil and profile.PremiumSeasonId == Config.Season.Id
+end
+
+function DataService.UnlockSeasonPremium(player)
+    local profile = profiles[player.UserId]
+    if not profile then return false end
+    profile.PremiumSeasonId = Config.Season.Id
+    return true
+end
+
+function DataService.AddAbilityCharge(player, abilityId, amount)
+    local profile = profiles[player.UserId]
+    if not profile or not Config.Abilities[abilityId] then return false end
+    profile.AbilityCharges[abilityId] = math.max(0, math.floor((profile.AbilityCharges[abilityId] or 0) + amount))
+    return true
+end
+
+function DataService.ConsumeAbilityCharge(player, abilityId)
+    local profile = profiles[player.UserId]
+    if not profile or not Config.Abilities[abilityId] then return false end
+    local charges = profile.AbilityCharges[abilityId] or 0
+    if charges <= 0 then return false end
+    profile.AbilityCharges[abilityId] = charges - 1
+    return true
+end
+
+function DataService.GetAbilityCharges(player, abilityId)
+    local profile = profiles[player.UserId]
+    if not profile then return 0 end
+    return math.max(0, math.floor((profile.AbilityCharges and profile.AbilityCharges[abilityId]) or 0))
+end
+
 function DataService.Save(player)
     local profile = profiles[player.UserId]
     if not profile then return true end
     profile.LastSeen = os.time()
+    ensureSeason(profile)
 
     -- In an unpublished Studio place, data intentionally lasts only for this
     -- play session. Once published, this path automatically uses DataStore.
@@ -254,6 +381,16 @@ function DataService.Save(player)
         ShieldReadyAt = profile.ShieldReadyAt,
         LockdownReadyAt = profile.LockdownReadyAt,
         LastSeen = profile.LastSeen,
+
+        SeasonId = profile.SeasonId,
+        SeasonXP = profile.SeasonXP,
+        SeasonFreeClaimed = profile.SeasonFreeClaimed,
+        SeasonPremiumClaimed = profile.SeasonPremiumClaimed,
+        PremiumSeasonId = profile.PremiumSeasonId,
+        DailyMissionDay = profile.DailyMissionDay,
+        DailyProgress = clone(profile.DailyProgress),
+        DailyCompleted = clone(profile.DailyCompleted),
+        AbilityCharges = clone(profile.AbilityCharges),
     }
 
     local ok, err = pcall(function()
